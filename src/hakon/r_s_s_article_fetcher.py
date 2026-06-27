@@ -75,10 +75,20 @@ def parse_rss_items(rss_xml: str, limit: int = 10):
                 break
 
     for it in items:
+        media_links = []
+        # Look for media links in enclosures or Media RSS content tags
+        for child in it.iter():
+            local = _local_name(child.tag)
+            if local in ("enclosure", "content"):
+                url = child.attrib.get("url")
+                if url:
+                    media_links.append(url)
+
         yield {
             "title": _child_text(it, "title"),
             "link": _child_text(it, "link"),
             "pubDate": _child_text(it, "pubDate"),
+            "media_links": media_links,
         }
 
 
@@ -104,6 +114,8 @@ def main():
         print(f"\n{i}. {item['title']}")
         print(f"   {item['link']}")
         print(f"   {item['pubDate']}")
+        for m_link in item.get("media_links", []):
+            print(f"   [Media] {m_link}")
 
         # Optional: fetch the article page (check robots first)
         if item["link"] and can_fetch(item["link"]):
